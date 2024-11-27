@@ -65,7 +65,7 @@ bool login() {
     username = uname;
 
     mvprintw(8, 10, "Password: ");
-    noecho();  
+    echo();  
     char pass[50];
     getstr(pass);
     password = pass;
@@ -83,7 +83,7 @@ bool login() {
     if (success) {
         mvprintw(10, 10, "Login successful! Welcome, %s", username.c_str());
     } else {
-        mvprintw(10, 10, "Login failed. Check your credentials.");
+        mvprintw(10, 10, "Login failed! Check your username and password.");
     }
     refresh();
     Sleep(2000);
@@ -102,7 +102,7 @@ void registerUser() {
     username = uname;
 
     mvprintw(8, 10, "Enter password: ");
-    noecho();
+    echo();
     char pass[50];
     getstr(pass);
     password = pass;
@@ -164,13 +164,13 @@ void showMenu() {
                 break;
             case '3':
                 clear();
-                mvprintw(row / 2, (col - 29) / 2, "Exiting the game. Goodbye!");
+                mvprintw(row / 2, (col - 29) / 2, "Exiting the game. Thank you!");
                 refresh();
                 Sleep(1000);
                 running = false;
                 break;
             default:
-                mvprintw(row / 2 + 3, (col - 26) / 2, "Invalid choice. Try again.");
+                mvprintw(row / 2 + 3, (col - 26) / 2, "Invalid choice. Try again!");
                 refresh();
                 Sleep(1000);
                 break;
@@ -191,16 +191,17 @@ int main() {
     while (!loggedIn) {
         loadingBeforeLogin();  
         clear();
-        mvprintw(5, 10, "1. Login");
-        mvprintw(6, 10, "2. Register");
+        mvprintw(5, 10, "1. Register");
+        mvprintw(6, 10, "2. Login");
         refresh();
 
         int choice = getch();
         if (choice == '1') {
-            loggedIn = login();
-            if (loggedIn) showWelcome();  
+            registerUser();  
         } else if (choice == '2') {
-            registerUser();
+        	loggedIn = login();
+            if (loggedIn) showWelcome();
+            
         }
     }
 
