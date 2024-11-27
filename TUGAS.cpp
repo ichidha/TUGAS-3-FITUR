@@ -1,59 +1,145 @@
 #include <iostream>
-#include <ncurses/ncurses.h>   
-#include <unistd.h>    
-#include <windows.h>   
+#include <fstream>
+#include <ncurses/ncurses.h>
+#include <unistd.h>
+#include <windows.h>
+#include <string>
 
 using namespace std;
 
-void showLoading() {
-    int i = 0;
+string currentUser = "";  
+
+void showLoading(){}
+
+void showIntro(){}
+
+
+void loadingBeforeLogin() {
     int row, col;
     getmaxyx(stdscr, row, col);
 
-    while (i < 3) {  
+    const char* messages[] = {
+        "Preparing login...",
+        "Checking security...",
+        "Loading user data...",
+        "Almost ready!"
+    };
+
+    for (int i = 0; i < 4; ++i) {
         clear();
-        int centerX = (col - 7) / 2;  
-        mvprintw(row / 2, centerX, "Loading");
-        
-        for (int j = 0; j < 5; ++j) {
-            mvprintw(row / 2, centerX + 7 + j, "."); 
-            refresh();
-            Sleep(300);
-        }
-        i++;
+        int centerX = (col - strlen(messages[i])) / 2;
+        mvprintw(row / 2, centerX, "%s", messages[i]);
+        refresh();
+        Sleep(800);  
     }
-    
-    int completeX = (col - 29) / 2; 
-    mvprintw((row / 2) + 2, completeX, "Loading Complete! Press any key...");
-    refresh();
-    getch();  
 }
 
-void showIntro() {
-    const char* lines[] = {
-        "              _                           ",
-        "__      _____| | ___ ___  _ __ ___   ___ ",
-        "\\ \\ /\\ / / _ \\ |/ __/ _ \\| '_ ` _ \\ / _ \\",
-        " \\ V  V /  __/ | (_| (_) | | | | | |  __/",
-        "  \\_/\\_/ \\___|_|\\___\\___/|_| |_| |_|\\___|"
-    };
+
+void showWelcome() {
     int row, col;
     getmaxyx(stdscr, row, col);
-
-    for (int i = 0; i < 5; ++i) {  
-        int centerX = (col - strlen(lines[i])) / 2;
-        mvprintw((row / 2 - 2) + i, centerX, "%s", lines[i]);
+    
+    const char* welcomeMsg = "Welcome to the Game!";
+    
+    for (int i = 0; i < 3; ++i) {  
+        clear();
         refresh();
-        Sleep(500);  
+        Sleep(500);
+        mvprintw(row / 2, (col - strlen(welcomeMsg)) / 2, welcomeMsg);
+        refresh();
+        Sleep(500);
     }
-    getch();  
+}
+
+
+bool login() {
+    string username, password, storedUser, storedPass;
+    bool success = false;
+
+    clear();
+    mvprintw(5, 10, "=== Login ===");
+    mvprintw(7, 10, "Username: ");
+    echo();  
+    char uname[50];
+    getstr(uname);
+    username = uname;
+
+    mvprintw(8, 10, "Password: ");
+    noecho();  
+    char pass[50];
+    getstr(pass);
+    password = pass;
+
+    ifstream userFile("users.txt");
+    while (userFile >> storedUser >> storedPass) {
+        if (username == storedUser && password == storedPass) {
+            success = true;
+            currentUser = username;
+            break;
+        }
+    }
+    userFile.close();
+
+    if (success) {
+        mvprintw(10, 10, "Login successful! Welcome, %s", username.c_str());
+    } else {
+        mvprintw(10, 10, "Login failed. Check your credentials.");
+    }
+    refresh();
+    Sleep(2000);
+    return success;
+}
+
+
+void registerUser() {
+    string username, password;
+    clear();
+    mvprintw(5, 10, "=== Register ===");
+    mvprintw(7, 10, "Enter username: ");
+    echo();
+    char uname[50];
+    getstr(uname);
+    username = uname;
+
+    mvprintw(8, 10, "Enter password: ");
+    noecho();
+    char pass[50];
+    getstr(pass);
+    password = pass;
+
+    ofstream userFile("users.txt", ios::app); 
+    userFile << username << " " << password << endl;
+    userFile.close();
+
+    mvprintw(10, 10, "Registration successful!");
+    refresh();
+    Sleep(2000);
+}
+
+
+void saveGame() {
+    if (currentUser.empty()) {
+        mvprintw(10, 10, "Please login first to save!");
+        refresh();
+        Sleep(2000);
+        return;
+    }
+
+    ofstream saveFile(currentUser + "_save.txt");
+    saveFile << "Game data for user: " << currentUser << endl;
+    saveFile << "Progress: 50% Complete" << endl;  
+    saveFile.close();
+
+    mvprintw(10, 10, "Game saved successfully for %s!", currentUser.c_str());
+    refresh();
+    Sleep(2000);
 }
 
 void showMenu() {
     int choice;
     bool running = true;
     int row, col;
-    
+
     getmaxyx(stdscr, row, col);
 
     while (running) {
@@ -62,23 +148,19 @@ void showMenu() {
         mvprintw(row / 2 - 1, (col - 7) / 2, "1. Play");
         mvprintw(row / 2, (col - 7) / 2, "2. Save");
         mvprintw(row / 2 + 1, (col - 7) / 2, "3. Quit");
-        
-        refresh();
 
-        choice = getch(); 
+        refresh();
+        choice = getch();
 
         switch (choice) {
             case '1':
                 clear();
                 mvprintw(row / 2, (col - 21) / 2, "Starting the game...");
                 refresh();
-                Sleep(1000);  
+                Sleep(1000);
                 break;
             case '2':
-                clear();
-                mvprintw(row / 2, (col - 14) / 2, "Game saved!");
-                refresh();
-                Sleep(1000);
+                saveGame();  
                 break;
             case '3':
                 clear();
@@ -97,13 +179,32 @@ void showMenu() {
 }
 
 int main() {
-    initscr();  
-    noecho();  
-    curs_set(0);  
+    initscr();
+    noecho();
+    curs_set(0);
 
-    showLoading();  
-    showIntro();    
-    showMenu();     
-    endwin(); 
+    showLoading();
+    showIntro();
+
+    
+    bool loggedIn = false;
+    while (!loggedIn) {
+        loadingBeforeLogin();  
+        clear();
+        mvprintw(5, 10, "1. Login");
+        mvprintw(6, 10, "2. Register");
+        refresh();
+
+        int choice = getch();
+        if (choice == '1') {
+            loggedIn = login();
+            if (loggedIn) showWelcome();  
+        } else if (choice == '2') {
+            registerUser();
+        }
+    }
+
+    showMenu();
+    endwin();
     return 0;
 }
